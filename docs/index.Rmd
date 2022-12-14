@@ -1,45 +1,144 @@
 ---
-title: "Your A4 Report Title (TODO: Revise title)"
-author: "Your Name"
-date: '2022-11-01'
+title: "Jail feminism"
+author: "Erzhan Umarov"
+date: '2022-12-11'
 output: html_document
 ---
 
-```{r echo=FALSE, eval=TRUE, message=FALSE}
-source("../source/a4-helpers.R")
-source("../source/analysis.R")
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+
+states<-read.csv("data/state_names_and_codes.csv")
+# df<-read.csv("data/incarceration_trends.csv")
+# saveRDS(df,"data/df.Rds")
+
+# Savind file as Rds to load faster
+df<-readRDS("data/df.Rds")
+
+source("analysis.R")
+source("a4-helpers.R")
 ```
 
-## Abstract 
-[TODO: Include a short abstract (about 50 words)]
 
-# Test (TODO: Remove before submission!!)
+<!-- Section 1 -->
+## Introduction
+
+The Objective of this report is to identify and expose the patterns of inequality in incarnation data. 
+
+In this data set we'll be analyzing the black population and white population in jails and the relevant trends from 1988 to 2018.
+
+
+<!-- Section 2 -->
+## Data Summary
+
 ```{r echo=FALSE}
-q1_string <- test_query1()
-num <- 5
+# Defining the variable
+var<-"white_jail_pop"
+
+# Generating max min county names for variable
+max2018<-get_max_county(df=df,variable=var,yearx=2018)
+min2018<-get_min_county(df=df,variable=var,yearx=2018)
+
+# geting avarage for the variable in 1988 and 2018
+avg1988<-get_county_wise_avg(df=df,variable=var,yearx=1988)
+avg2018<-get_county_wise_avg(df=df,variable=var,yearx=2018)
+
+# geting avarage for the total population in 1988 and 2018
+avgToal1988<-get_county_wise_avg(df=df,variable="total_jail_pop",yearx=1988)
+avgToal2018<-get_county_wise_avg(df=df,variable='total_jail_pop',yearx=2018)
+
+k<-avgToal2018-avgToal1988<avg2018-avg1988
+
+change<-if(!k){"The white population has been grown more than the overall avarage in prisons and thus there's an trend of increasing white population."}else{"The white population has been grown less than the overall avarage in prisons and thus there's an trend of decreasing white population.."}
 ```
-As you know, this is a markdown report. The [R Markdown Cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/02/rmarkdown-cheatsheet.pdf) is **useful!**
 
-* Here's a test of a dynamic variable. Say **"`r q1_string`!!!** 
-* Here's another test. A vector
-of numbers: `r test_query2(num)`.
 
-Recall that _{r echo=TRUE}_ can be used to display the code, 
-which is very useful when developing and debugging a report. Here's an example: 
+In 2018, The county with most of the white population in jails is `r max2018`and the county with lowest white population in jail is `r min2018`
 
-```{r echo=TRUE}
-num <- 5
-sum <- sum(test_query2(num))
-print(sum)
+in 1988, the white population in jails were `r avg1988` and in 2018 it was `r avg2018` which is a growth of `r round((avg2018-avg1988)/avg1988*100,2)`%
+
+
+As per the total population in jails, in 1988 `r avgToal1988` and `r avgToal2018` in 2018, which is a growth of `r round((avgToal2018-avgToal1988)/avgToal1988*100,2)`%
+
+Considering the fact, it can be identified that `r change`
+
+<!-- Section 3 -->
+## Growth of U.S Prison Population
+
+```{r echo=FALSE}
+plot_jail_pop_for_us()
+
 ```
 
-## Introduction 
-[TODO]
+As it indicates there has been a huge increase of population in jail from 1980 to 2008 and then it indicates a pattern of reducing or fixating as a total in all county.
 
-## Data Summary 
-[TODO]
+<!-- Section 4 -->
+## Growth of Prison Population by state
 
-[TODO ... other sections ... See Canvas for details]
+```{r echo=FALSE}
+plot_jail_pop_by_state(states = unique(df$state)[1:5])
 
-_All the very best with your work!_
 
+```
+
+As it indicates, CA has a tremendoues increase of the population 1980 to 1990 and seems to become saturated. all the other states does not show a big variation but is shows a groth of the population and AK seems to have no population.
+
+
+<!-- Section 5 -->
+## Comparisson of black and white population in Jails
+
+```{r echo=FALSE}
+get_wb_plot(df)
+```
+
+
+```{r echo=FALSE}
+
+k<-get_bw_ratio(df)%>%
+  filter(year==2018)%>%
+  head(10)
+statesx<-unique(k$state)[1:5]
+```
+
+As it indicates, by 2018, top 10 places where the black/white jail population has extremes are as below.
+
+```{r echo=FALSE}
+knitr::kable(k)
+```
+
+For these top 5 states, the ration has been changed as below figure with time.
+
+```{r echo=FALSE}
+
+k<-get_bw_ratio(df)%>%
+  filter(state%in%statesx)
+
+k<-k%>%
+  tidyr::spread(key = state,value = ratio)
+
+k<-melt(k,id="year")
+
+ggplot(k,            
+         aes(x = year,
+             y = value,
+             color = variable)) +  geom_line() +
+  labs(title = "Black/White Jail population yearly", caption = "Black/ White jail population is yearly plotted for top 5 states with ratio extreme.")
+
+```
+
+as it indicates, by far DC has an extreme of black jail population and it has been in its highest and has came back but yet it is way higher than other states.
+
+
+<!-- Section 6 -->
+## Potential inequality map of Black/White Ratio
+
+```{r echo=FALSE}
+toMap<-get_bw_ratio(df)%>%
+  filter(year==2018)
+
+get_bw_map(df = toMap)
+
+
+```
